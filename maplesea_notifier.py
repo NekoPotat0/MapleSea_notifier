@@ -29,7 +29,7 @@ USER_AGENT = {"User-Agent": "MapleSEA Monitor via GitHub Actions/1.0"}
 TIMEOUT = 30  # seconds
 
 # backfill guard: post at most N new items per section per run
-BACKFILL_CAP_PER_SECTION = 3
+BACKFILL_CAP_PER_SECTION = 15
 # polite spacing between posts (seconds)
 POST_SPACING = 0.5
 # ---------------------------
@@ -171,3 +171,4 @@ def run_once():
 
 if __name__ == "__main__":
     run_once()
+
