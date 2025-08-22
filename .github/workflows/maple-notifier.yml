@@ -2,7 +2,7 @@ name: MapleSEA Notifier
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/10 2-10 * * *"   # every 5 min, daily, only 10:00–18:59 MYT
   workflow_dispatch: {}
 
 permissions:
@@ -32,8 +32,8 @@ jobs:
           MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
         run: |
           python - <<'PY'
-          import os, random, time, subprocess
-          time.sleep(random.randint(0,30))
+          import random, time, subprocess
+          time.sleep(random.randint(0,30))  # small jitter so we don't all hit at once
           subprocess.check_call(["python", "maplesea_notifier.py"])
           PY
 
