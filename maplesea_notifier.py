@@ -64,8 +64,14 @@ def extract_items(section_name: str, list_url: str):
     soup = BeautifulSoup(r.text, "html.parser")
 
     anchors = soup.select(
-        "a[href*='/updates/view/'], a[href*='/notices/view/'], a[href*='/announcements/view/']"
-    )
+    "a[href*='/announcements/view/'], "
+    "a[href*='/news/view/'], "
+    "a[href*='/events/view/'], "
+    "a[href*='/notices/view/'], "
+    "a[href*='/updates/view/'], "
+    "a[href*='/newnameauction/view/']"
+)
+
 
     items = []
     for a in anchors:
@@ -173,6 +179,7 @@ def run_once():
 
 if __name__ == "__main__":
     run_once()
+
 
 
 
