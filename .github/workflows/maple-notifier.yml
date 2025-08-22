@@ -2,23 +2,22 @@ name: MapleSEA Notifier
 
 on:
   schedule:
-    # GitHub Actions uses UTC.
-    # Tuesday 12:00–18:00 MYT = Tuesday 04:00–10:00 UTC.
-    - cron: "*/15 4-10 * * 2"   # every 15 minutes, only on Tuesday
-  workflow_dispatch: {}          # allow manual run for testing
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
 
 permissions:
-  contents: write   # needed so we can commit updated data/seen_maplesea.json
+  contents: write
+
+concurrency:
+  group: maple-notifier
+  cancel-in-progress: true
 
 jobs:
   run:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,11 +27,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run notifier
+      - name: Run notifier (with jitter)
         env:
           MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
         run: |
-          python maplesea_notifier.py
+          python - <<'PY'
+          import os, random, time, subprocess
+          time.sleep(random.randint(0,30))
+          subprocess.check_call(["python", "maplesea_notifier.py"])
+          PY
 
       - name: Commit state (if changed)
         run: |
