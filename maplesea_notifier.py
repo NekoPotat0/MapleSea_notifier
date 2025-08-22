@@ -18,7 +18,7 @@ CHECK_PAGES = {
     "Notices": "https://www.maplesea.com/notices",
     "Announcements": "https://www.maplesea.com/announcements",
 }
-STATE_FILE = Path("seen_maplesea.json")  # stores URLs already posted
+STATE_FILE = Path(".state/seen_maplesea.json")  # stores URLs already posted
 USER_AGENT = {"User-Agent": "Mozilla/5.0 (MapleSEA Patch Monitor)"}
 TIMEOUT = 30  # seconds
 # ============================
@@ -129,3 +129,4 @@ if __name__ == "__main__":
     # while True:
     #     run_once()
     #     time.sleep(15 * 60)   # check every 15 minutes
+
