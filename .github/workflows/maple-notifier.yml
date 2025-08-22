@@ -2,11 +2,13 @@ name: MapleSEA Notifier
 
 on:
   schedule:
-    - cron: "*/10 2-10 * * *"   # every 5 min, daily, only 10:00–18:59 MYT
-  workflow_dispatch: {}
+    # GitHub Actions uses UTC.
+    # 10:00–18:59 MYT = 02:00–10:59 UTC (no DST).
+    - cron: "*/5 2-10 * * *"   # every 5 minutes within that daily window
+  workflow_dispatch: {}         # allow manual test
 
 permissions:
-  contents: write
+  contents: write               # needed to push the .state file
 
 concurrency:
   group: maple-notifier
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,10 +40,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run notifier
+      - name: Run notifier (small jitter to avoid thundering herd)
         env:
           MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
-        run: python maplesea_notifier.py
+        run: |
+          python - <<'PY'
+          import random, time, subprocess
+          time.sleep(random.randint(0,30))
+          subprocess.check_call(["python", "maplesea_notifier.py"])
+          PY
 
       - name: Commit state (if changed)
         run: |
