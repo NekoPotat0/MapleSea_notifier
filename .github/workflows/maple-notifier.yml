@@ -1,0 +1,47 @@
+name: MapleSEA Notifier
+
+on:
+  schedule:
+    # GitHub Actions uses UTC.
+    # Tuesday 12:00–18:00 MYT = Tuesday 04:00–10:00 UTC.
+    - cron: "*/15 4-10 * * 2"   # every 15 minutes, only on Tuesday
+  workflow_dispatch: {}          # allow manual run for testing
+
+permissions:
+  contents: write   # needed so we can commit updated data/seen_maplesea.json
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run notifier
+        env:
+          MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
+        run: |
+          python maplesea_notifier.py
+
+      - name: Commit state (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/seen_maplesea.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update seen_maplesea.json [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
