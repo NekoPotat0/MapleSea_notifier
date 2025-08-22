@@ -19,7 +19,9 @@ if not WEBHOOK_URL:
 
 CHECK_PAGES = {
     "Updates": "https://www.maplesea.com/updates",
+    "News": "https://www.maplesea.com/news",
     "Notices": "https://www.maplesea.com/notices",
+    "Events": "https://www.maplesea.com/events",
     "Announcements": "https://www.maplesea.com/announcements",
 }
 
@@ -32,6 +34,7 @@ TIMEOUT = 30  # seconds
 BACKFILL_CAP_PER_SECTION = 15
 # polite spacing between posts (seconds)
 POST_SPACING = 0.5
+RECENCY_DAYS = 7  # e.g., 14 to only post last 14 days
 # ---------------------------
 
 
@@ -170,5 +173,6 @@ def run_once():
 
 if __name__ == "__main__":
     run_once()
+
 
 
