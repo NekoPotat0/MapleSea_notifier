@@ -18,6 +18,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Ensure state file exists
+        run: |
+          mkdir -p .state
+          if [ ! -f .state/seen_maplesea.json ]; then
+            echo '{"seen":[]}' > .state/seen_maplesea.json
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,15 +37,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run notifier (with jitter)
+      - name: Run notifier
         env:
           MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
-        run: |
-          python - <<'PY'
-          import random, time, subprocess
-          time.sleep(random.randint(0,30))  # small jitter so we don't all hit at once
-          subprocess.check_call(["python", "maplesea_notifier.py"])
-          PY
+        run: python maplesea_notifier.py
 
       - name: Commit state (if changed)
         run: |
