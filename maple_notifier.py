@@ -8,7 +8,10 @@ import requests
 from bs4 import BeautifulSoup
 
 # ====== CONFIGURE THIS ======
-WEBHOOK_URL = "https://discord.com/api/webhooks/1408258731267067934/Rbh_db8KMyZwWgVFi1nDv6f_wQXMpy0E6OMuK07Ad3VB5zpT9qUNUjX_ecTShp2d7qIS"   # <--- paste your webhook URL here
+import os
+WEBHOOK_URL = os.environ.get("MAPLESEA_WEBHOOK_URL", "")
+if not WEBHOOK_URL:
+    raise RuntimeError("Missing MAPLESEA_WEBHOOK_URL env var")
 CHECK_PAGES = {
     "Updates": "https://www.maplesea.com/updates",
     "Notices": "https://www.maplesea.com/notices",
