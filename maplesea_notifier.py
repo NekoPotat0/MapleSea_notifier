@@ -148,9 +148,8 @@ def run_once():
         if not items:
             continue
 
-        # assume list pages show newest first; keep only a few to post
-        to_post = items[:BACKFILL_CAP_PER_SECTION]
-        to_skip = items[BACKFILL_CAP_PER_SECTION:]
+        to_post = items
+        to_skip = []
 
         for it in to_post:
             try:
@@ -171,4 +170,5 @@ def run_once():
 
 if __name__ == "__main__":
     run_once()
+
 
