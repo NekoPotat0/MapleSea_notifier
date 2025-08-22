@@ -1,28 +1,41 @@
 # file: maplesea_notifier.py
-# Purpose: Poll MapleSEA website sections and post new items to a Discord channel via webhook.
+# MapleSEA -> Discord notifier (GitHub Actions friendly)
+# - Scrapes Updates/Notices/Announcements
+# - Persists "seen" URLs in .state/seen_maplesea.json (committed by workflow)
+# - Handles Discord 429 rate limits
+# - Caps backfill per run to avoid bursts
 
-import json, re
+import os, re, json, time
 from pathlib import Path
 from datetime import datetime, timezone
+
 import requests
 from bs4 import BeautifulSoup
 
-# ====== CONFIGURE THIS ======
-# replace the WEBHOOK_URL line with this:
-import os
+# ---------- Config ----------
 WEBHOOK_URL = os.environ.get("MAPLESEA_WEBHOOK_URL", "")
 if not WEBHOOK_URL:
     raise RuntimeError("Missing MAPLESEA_WEBHOOK_URL env var")
+
 CHECK_PAGES = {
     "Updates": "https://www.maplesea.com/updates",
     "Notices": "https://www.maplesea.com/notices",
     "Announcements": "https://www.maplesea.com/announcements",
 }
-STATE_FILE = Path(".state/seen_maplesea.json")  # stores URLs already posted
-USER_AGENT = {"User-Agent": "Mozilla/5.0 (MapleSEA Patch Monitor)"}
-TIMEOUT = 30  # seconds
-# ============================
 
+# store in a hidden folder the workflow will commit
+STATE_FILE = Path(".state/seen_maplesea.json")
+USER_AGENT = {"User-Agent": "MapleSEA Monitor via GitHub Actions/1.0"}
+TIMEOUT = 30  # seconds
+
+# backfill guard: post at most N new items per section per run
+BACKFILL_CAP_PER_SECTION = 3
+# polite spacing between posts (seconds)
+POST_SPACING = 0.5
+# ---------------------------
+
+
+# ----- state helpers -----
 def ensure_state_file():
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     if not STATE_FILE.exists():
@@ -38,41 +51,29 @@ def load_state():
 def save_state(state):
     ensure_state_file()
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+# -------------------------
 
-def load_state():
-    if STATE_FILE.exists():
-        try:
-            return json.loads(STATE_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    return {"seen": []}
 
-def save_state(state):
-    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
-
-def extract_items(section_name, list_url):
-    """Return a list of {section,title,url,date_hint} from a listing page."""
+def extract_items(section_name: str, list_url: str):
+    """Return list[{section,title,url,date_hint}] scraped from a listing page."""
     r = requests.get(list_url, headers=USER_AGENT, timeout=TIMEOUT)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
 
-    # Match any of the known "view" URLs
     anchors = soup.select(
         "a[href*='/updates/view/'], a[href*='/notices/view/'], a[href*='/announcements/view/']"
     )
 
     items = []
     for a in anchors:
-        href = a.get("href", "").strip()
+        href = (a.get("href") or "").strip()
         title = a.get_text(" ", strip=True)
         if not href or not title:
             continue
-
-        # Convert relative to absolute
         if href.startswith("/"):
             href = "https://www.maplesea.com" + href
 
-        # Try to pick up a nearby date text (best-effort; site formats change sometimes)
+        # try to extract a date-ish hint near the link (best-effort)
         date_hint = ""
         parent = a.find_parent()
         if parent:
@@ -88,7 +89,7 @@ def extract_items(section_name, list_url):
             "date_hint": date_hint
         })
 
-    # Deduplicate by URL
+    # dedupe by url
     seen_urls, deduped = set(), []
     for it in items:
         if it["url"] in seen_urls:
@@ -97,53 +98,76 @@ def extract_items(section_name, list_url):
         deduped.append(it)
     return deduped
 
-def send_to_discord(item):
-    """Send a Discord embed via webhook."""
+
+def send_to_discord(item, max_retries=5):
+    """Post one embed, handling Discord 429 rate limit."""
     embed = {
-        "title": f"{item['section']}: {item['title']}",
+        "title": f"[{item['section']}] {item['title']}",
         "url": item["url"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "footer": {"text": "MapleSEA Web Monitor"},
+        "footer": {"text": "#maple-web-notices • MapleSEA Web Monitor"},
     }
     if item.get("date_hint"):
         embed["description"] = f"Detected on page: {item['date_hint']}"
 
     payload = {"embeds": [embed]}
-    r = requests.post(WEBHOOK_URL, json=payload, timeout=TIMEOUT)
-    r.raise_for_status()
+
+    for attempt in range(max_retries):
+        r = requests.post(WEBHOOK_URL, json=payload, timeout=TIMEOUT)
+        if r.status_code == 429:
+            retry_after = r.headers.get("Retry-After") or r.headers.get("retry-after") or "2"
+            try:
+                sleep_s = float(retry_after)
+            except ValueError:
+                sleep_s = 2.0
+            time.sleep(sleep_s)
+            continue
+        r.raise_for_status()
+        time.sleep(POST_SPACING)
+        return
+    raise RuntimeError("Discord rate limit: failed after retries")
+
 
 def run_once():
     state = load_state()
     already = set(state.get("seen", []))
-    new_found = []
+    new_found_by_section = {}
 
+    # collect new items per section
     for section, url in CHECK_PAGES.items():
         try:
-            for it in extract_items(section, url):
-                if it["url"] not in already:
-                    new_found.append(it)
+            section_items = [it for it in extract_items(section, url) if it["url"] not in already]
+            new_found_by_section[section] = section_items
         except Exception as e:
             print(f"[WARN] Could not read {section} ({url}): {e}")
 
-    # Post new items in the order we found them
-    for it in new_found:
-        try:
-            send_to_discord(it)
-            already.add(it["url"])
-            print(f"[OK] Posted: {it['section']} — {it['title']}")
-        except Exception as e:
-            print(f"[WARN] Failed to post {it['url']}: {e}")
+    posted = 0
 
-    save_state({"seen": list(already)})
+    # cap backfill and politely post
+    for section, items in new_found_by_section.items():
+        if not items:
+            continue
+
+        # assume list pages show newest first; keep only a few to post
+        to_post = items[:BACKFILL_CAP_PER_SECTION]
+        to_skip = items[BACKFILL_CAP_PER_SECTION:]
+
+        for it in to_post:
+            try:
+                send_to_discord(it)
+                already.add(it["url"])
+                posted += 1
+                print(f"[OK] Posted: {it['section']} — {it['title']}")
+            except Exception as e:
+                print(f"[WARN] Failed to post {it['url']}: {e}")
+
+        # mark the rest as seen silently (avoid future backfill floods)
+        for it in to_skip:
+            already.add(it["url"])
+
+    save_state({"seen": sorted(list(already))})
+    print(f"[INFO] Done. Newly posted: {posted}. Total seen: {len(already)}")
+
 
 if __name__ == "__main__":
     run_once()
-    # If you prefer to loop continuously instead of using a scheduler,
-    # you can replace the two lines above with a loop that sleeps:
-    #
-    # import time
-    # while True:
-    #     run_once()
-    #     time.sleep(15 * 60)   # check every 15 minutes
-
-
