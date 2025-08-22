@@ -23,6 +23,22 @@ USER_AGENT = {"User-Agent": "Mozilla/5.0 (MapleSEA Patch Monitor)"}
 TIMEOUT = 30  # seconds
 # ============================
 
+def ensure_state_file():
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not STATE_FILE.exists():
+        STATE_FILE.write_text(json.dumps({"seen": []}, indent=2), encoding="utf-8")
+
+def load_state():
+    ensure_state_file()
+    try:
+        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {"seen": []}
+
+def save_state(state):
+    ensure_state_file()
+    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
 def load_state():
     if STATE_FILE.exists():
         try:
@@ -129,4 +145,5 @@ if __name__ == "__main__":
     # while True:
     #     run_once()
     #     time.sleep(15 * 60)   # check every 15 minutes
+
 
