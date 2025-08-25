@@ -4,7 +4,8 @@ on:
   schedule:
     # GitHub Actions uses UTC.
     # 10:00–18:59 MYT = 02:00–10:59 UTC (no DST).
-    - cron: "*/5 2-10 * * *"   # every 5 minutes within that daily window
+    - cron: "*/5 2-10 * * *"  
+    - cron: "*/5 10-15 * * *"# every 5 minutes within that daily window
   workflow_dispatch: {}         # allow manual test
 
 permissions:
