@@ -8,6 +8,7 @@
 import os, re, json, time
 from pathlib import Path
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup
@@ -174,12 +175,24 @@ def run_once():
             already.add(it["url"])
 
     save_state({"seen": sorted(list(already))})
-    print(f"[INFO] Checked at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Newly posted: {posted} | Total seen: {len(already)}")
+
+    # section-level debug: how many unseen candidates we had per section this run
+    for section, items in new_found_by_section.items():
+    print(f"[DEBUG] {section}: {len(items)} unseen candidates (before posting/backfill)")
+
+    # friendly summary with both MYT and UTC timestamps
+    now_utc = datetime.now(timezone.utc)
+    now_myt = now_utc.astimezone(ZoneInfo("Asia/Kuala_Lumpur"))
+    print(
+        f"[INFO] Checked at {now_myt:%Y-%m-%d %H:%M:%S} MYT | {now_utc:%Y-%m-%d %H:%M:%S} UTC "
+        f"| Newly posted: {posted} | Total seen: {len(already)}"
+)
 
 
 
 if __name__ == "__main__":
     run_once()
+
 
 
 
