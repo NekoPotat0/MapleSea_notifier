@@ -178,7 +178,7 @@ def run_once():
 
     # section-level debug: how many unseen candidates we had per section this run
     for section, items in new_found_by_section.items():
-    print(f"[DEBUG] {section}: {len(items)} unseen candidates (before posting/backfill)")
+        print(f"[DEBUG] {section}: {len(items)} unseen candidates (before posting/backfill)")
 
     # friendly summary with both MYT and UTC timestamps
     now_utc = datetime.now(timezone.utc)
@@ -192,6 +192,7 @@ def run_once():
 
 if __name__ == "__main__":
     run_once()
+
 
 
 
