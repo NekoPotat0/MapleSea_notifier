@@ -1,4 +1,4 @@
-name: MapleSEA Notifier (offset)
+name: MapleSEA Notifier (backup)
 
 on:
   schedule:
