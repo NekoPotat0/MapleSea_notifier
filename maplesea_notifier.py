@@ -174,11 +174,13 @@ def run_once():
             already.add(it["url"])
 
     save_state({"seen": sorted(list(already))})
-    print(f"[INFO] Done. Newly posted: {posted}. Total seen: {len(already)}")
+    print(f"[INFO] Checked at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Newly posted: {posted} | Total seen: {len(already)}")
+
 
 
 if __name__ == "__main__":
     run_once()
+
 
 
 
