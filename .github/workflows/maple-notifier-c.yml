@@ -1,0 +1,62 @@
+name: MapleSEA Notifier (offset +2)
+
+on:
+  schedule:
+    # Runs at minutes 2,7,12,17,... during your UTC window (02:00–10:59)
+    - cron: "3-59/5 2-10 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maple-notifier
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Ensure state file exists
+        run: |
+          mkdir -p .state
+          if [ ! -f .state/seen_maplesea.json ]; then
+            echo '{"seen":[]}' > .state/seen_maplesea.json
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run notifier
+        env:
+          MAPLESEA_WEBHOOK_URL: ${{ secrets.MAPLESEA_WEBHOOK_URL }}
+        run: |
+          python - <<'PY'
+          import random, time, subprocess
+          time.sleep(random.randint(0,30))  # random jitter to avoid collisions
+          subprocess.check_call(["python", "maplesea_notifier.py"])
+          PY
+
+      - name: Commit state (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .state/seen_maplesea.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update seen_maplesea.json [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
