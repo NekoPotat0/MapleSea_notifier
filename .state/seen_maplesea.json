@@ -232,6 +232,7 @@
     "https://www.maplesea.com/updates/view/CSU_191125/",
     "https://www.maplesea.com/updates/view/CSU_200825/",
     "https://www.maplesea.com/updates/view/CSU_210126/",
+    "https://www.maplesea.com/updates/view/CSU_220426/",
     "https://www.maplesea.com/updates/view/CSU_221025/",
     "https://www.maplesea.com/updates/view/CSU_230725/",
     "https://www.maplesea.com/updates/view/CSU_240925/",
@@ -258,8 +259,10 @@
     "https://www.maplesea.com/updates/view/GCP_171225/",
     "https://www.maplesea.com/updates/view/GCP_180326/",
     "https://www.maplesea.com/updates/view/GCP_200825/",
+    "https://www.maplesea.com/updates/view/GCP_220426/",
     "https://www.maplesea.com/updates/view/GCP_280126/",
     "https://www.maplesea.com/updates/view/RBU_110326/",
+    "https://www.maplesea.com/updates/view/RBU_220426/",
     "https://www.maplesea.com/updates/view/VSU_110326/",
     "https://www.maplesea.com/updates/view/VSU_200226/",
     "https://www.maplesea.com/updates/view/WB_080426/",
@@ -309,6 +312,12 @@
     "https://www.maplesea.com/updates/view/v249_Patch/",
     "https://www.maplesea.com/updates/view/v249_Patch_IBF/",
     "https://www.maplesea.com/updates/view/v249_SLC/",
-    "https://www.maplesea.com/updates/view/v249_SW/"
+    "https://www.maplesea.com/updates/view/v249_SW/",
+    "https://www.maplesea.com/updates/view/v250_21Anni/",
+    "https://www.maplesea.com/updates/view/v250_Akatsuki/",
+    "https://www.maplesea.com/updates/view/v250_Event/",
+    "https://www.maplesea.com/updates/view/v250_Growth/",
+    "https://www.maplesea.com/updates/view/v250_Patch/",
+    "https://www.maplesea.com/updates/view/v250_School/"
   ]
 }
